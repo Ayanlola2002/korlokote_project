@@ -9,3 +9,6 @@ Data Extraction: Codes can be found <a href="SQL_CODES">here</a>
 <p><img src="SAP1.png"></img></p>
 
 <p><img src="Neurosoftware.png"></img></p>
+
+
+<p>Data Cleaning /Preprocessing and Modelling  <a href="SalesData_Project3.ipynb">here</a></p>
