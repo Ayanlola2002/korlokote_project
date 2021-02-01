@@ -1,0 +1,224 @@
+select *
+from dbo.['Sales Details 2010 - 18122015$']
+
+Codes to extract features from SAP DATABASE and OCTOPUS
+
+USE [SAP_SALES_TOW]
+GO
+
+SELECT [#]
+,[Coil Pattern] ,[Group Name],[Product] ,[Document Number]
+,[Doc# Date] ,[Week]  ,[Month]  ,[Group Name1]
+,[Customer Code] ,[Customer Name]  ,[Item Code]
+,[Item Description],[Thickness] ,[Width]
+,[Colour] ,[Batch Number],[ItemCost]  ,[Sales Price]
+,[Batch Quantity],[Batch Mtr] ,[Vat Value]
+,[Sales Amount] ,[Con Margin]
+,[Con Margin%]  ,[Destination]
+
+FROM [dbo].['SAPB1_Sales Details 201018122015$']
+
+#Sql codes showing the number of color type product available in the production company?
+select Colour,width,thickness,count(Colour) 'colours',sum([Batch Quantity]) 'batch_sum',sum([Sales Amount]) 'Sales'
+from dbo.['Sales Details 2010 - 18122015$']
+group by colour,Width,Thickness
+order by colours desc
+
+#codes to extract dateparts from dataset
+select  datepart(yyyy,[Doc# Date]) as 'YP',datepart(QQ,[Doc# Date]) as 'YQP',datepart(MM,[Doc# Date]) as 'MP',
+convert(varchar(5),datepart(yyyy,[Doc# Date]))+'_'+convert(varchar(5),datepart(QQ,[Doc# Date]))+'_'+convert(varchar(5),datepart(MM,[Doc# Date]))
+
+as 'code',sum([Sales Amount]) as 'Monthly_Sales'
+from dbo.['Sales Details 2010 - 18122015$']
+where year([Doc# Date]) >2010 
+group by datepart(yyyy,[Doc# Date]),datepart(QQ,[Doc# Date]),datepart(MM,[Doc# Date])
+order by yp,yqp,MP
+
+#Various Dates Manipulations
+select [Coil Pattern],[Group Name1],Product,[Group Name2],[Customer Code],[Customer Name],Datename(DD,[Doc# Date]) 'DAY',  Datename(MM,[Doc# Date])+'-'+convert(Varchar(20),datepart(MM,[Doc# Date])) 'MONTH', Datename(YYYY,[Doc# Date]) as 'YEAR',[Item Code],[Item Description],Thickness,Width,Colour,[Batch Number],[Batch Quantity],[Item Code],[Item Description],ItemCost,[Sales Price],[Batch Quantity],[Sales Amount]
+from dbo.['Sales Details 2010 - 18122015$']
+order by YEAR,MONTH,DAY
+
+select [Coil Pattern],[Group Name1],Product,[Group Name2],[Customer Code],[Customer Name],Datename(DD,[Doc# Date]) 'DAY',  Datename(MM,[Doc# Date])+'-'+convert(Varchar(20),datepart(MM,[Doc# Date])) 'MONTH', Datename(YYYY,[Doc# Date]) as 'YEAR',[Item Code],[Item Description],Thickness,Width,Colour,[Batch Number],[Batch Quantity],[Item Code],[Item Description],ItemCost,[Sales Price],[Batch Quantity],[Sales Amount]
+from dbo.['Sales Details 2010 - 18122015$']
+order by YEAR,MONTH,DAY
+
+
+select datename(yyyy,[Doc# Date]) as 'year',datename(MM,[Doc# Date]) as 'Month' ,sum([Sales Amount])
+from dbo.['Sales Details 2010 - 18122015$']
+where year([Doc# Date]) >2010 
+group by [Doc# Date]
+order by year,datepart(mm,[Doc# Date])
+
+select  datename(yyyy,[Doc# Date]) as 'yearPart',datepart(MONTH,[Doc# Date]) as 'MonthPart',datename(yyyy,[Doc# Date]) +'_'+left(datename(MM,[Doc# Date]),3) as 'YearMonth',sum([Sales Amount]) as 'Monthly_Sales'
+from dbo.['Sales Details 2010 - 18122015$']
+where year([Doc# Date]) >2010 
+group by [Doc# Date]
+order by yearPart,MonthPart
+
+
+
+
+
+
+
+/* Generated Code (IMPORT) */ 
+/* Source File: sum_QuaterlySales.xlsx */ 
+/* Source Path: /folders/myfolders/DIB */ 
+/* Code generated on: 4/28/18, 8:12 PM */ 
+ 
+%web_drop_table(WORK.IMPORT2); 
+ 
+ 
+FILENAME REFFILE '/folders/myfolders/DIB/sum_QuaterlySales.xlsx'; 
+ 
+PROC IMPORT DATAFILE=REFFILE 
+	DBMS=XLSX 
+	OUT=WORK.IMPORT2; 
+	GETNAMES=YES; 
+RUN; 
+ 
+PROC CONTENTS DATA=WORK.IMPORT2; RUN; 
+proc sgplot data=WORK.IMPORT2; 
+series x=code y=Monthly_Sales; 
+run; 
+quit; 
+ 
+proc sgplot data=WORk.import; 
+scatter y=Monthly_sales x=yearMonth; 
+run;quit; 
+ 
+ 
+proc transreg details data=work.import1; 
+    plots=(transformation code) 
+   model BoxCox(Monthly_Sales ); 
+run; 
+ 
+data Masterdata; 
+set work.import1.Monthly_Sales; 
+log_Sales=log(work.import1.Monthly_sales);run; 
+ 
+ 
+proc arima data=work.import2; 
+Identify var=Monthly_Sales(1,4) 
+Stationarity=(adf); 
+run; 
+quit; 
+
+
+
+
+
+select [Doc# Date],datepart(WK,[Doc# Date]) as iso_weeks,sum([Sales Amount]) as sales
+from dbo.['Sales Details 2010 - 18122015$']
+--where [Doc# Date] between '2010-01-01' and '2010-12-31'
+group by [Doc# Date],datepart(wk,[Doc# Date])
+order by [Doc# Date],iso_weeks
+
+
+select DATEPART(mm,[Doc# Date]) as Numeric_month,datename(month,[Doc# Date]) as Month_Of__sales,datename(yyyy,[Doc# Date]) as year_of_sales,
+convert(varchar(20),(left(datename(month,[Doc# Date]),3)+datename(yyyy,[Doc# Date]))) as Date_Format,
+round(sum([Sales Amount]),0) as sales
+from dbo.['Sales Details 2010 - 18122015$']
+where [Doc# Date] between '2010-01-01' and '2010-12-31'
+group by DATEPART(mm,[Doc# Date]),datename(yyyy,[Doc# Date]),datename(month,[Doc# Date])
+order by DATEPART(mm,[Doc# Date])
+
+#SAS statements to determine top customers
+FILENAME REFFILE '/folders/myfolders/sasuser.v94/cleaned_data/cleaned_best.xlsx';
+
+PROC IMPORT DATAFILE=REFFILE
+	DBMS=XLSX
+	OUT=WORK.IMPORT;
+	GETNAMES=YES;
+RUN;
+
+PROC CONTENTS DATA=WORK.IMPORT; RUN;
+
+proc sgplot data=WORK.IMPORT;
+where (customer_code contains ('CIQ0001') or customer_code contains ('CIM0007') or 
+customer_code contains ('CIT0005') or customer_code contains ('CIP0001') or customer_code contains ('CIA0013')
+or customer_code contains('CIB0004') or customer_code contains ('CIT0008') or customer_code contains ('CEO0007') or customer_code contains ('CIA0009')
+or customer_code contains('CIA0004')) and year =2010;
+vbar Customer_code ;
+title "orders by customers";
+run;
+
+orders by company
+orders by region
+sales  by  region
+distribution of orders  to develop a model to predict customer orders
+
+frequency count by  companies
+
+sales performance of company in the past years
+who are the top 5 the best customers
+
+series plot of orders for top 5 countries
+overlaid bars with transparency
+
+series plot of sales for each year overlaid
+
+Specifying STYLE in an ODS Statement
+
+grouped series plots
+
+horizontal bar chart
+
+USING PROC SGPANEL TO DISPLAY MULTIPLE CELLS PER PAGE
+PROC SGSCATTER COLUMNS= and UNISCALE= Options
+
+
+
+
+
+
+
+PROC CONTENTS DATA=WORK.IMPORT; RUN;
+
+proc sgpanel data=WORK.IMPORT;
+where customer_code contains ('CIQ0001') or customer_code contains ('CIM0007') or 
+customer_code contains ('CIT0005') or customer_code contains ('CIP0001') or customer_code contains ('CIA0013')
+or customer_code contains('CIB0004') or customer_code contains ('CIT0008') or customer_code contains ('CEO0007') or customer_code contains ('CIA0009')
+or customer_code contains('CIA0004');
+panelby year;
+vbar Customer_code ;
+title "orders by customers";
+run;
+
+
+
+
+
+
+top_customers
+CIM0007
+CIQ0001
+CIT0005
+CIP0001
+CIA0013
+CIB0004
+CIT0008
+CEO0007
+CIA0009
+CIA0004
+
+bottom_customers
+CEP0004
+CEU0002
+CES0016
+CIT0009
+CIT0007
+CEA0018
+CEA0030
+CED0009
+CET0002
+CEC0004
+
+
+select  [Customer Code],[Item Description],[Doc# Date],sum([Batch Quantity]) as 'Sum_batch',sum([Sales Amount]) as 'sales'
+from dbo.['Sales Details 2010 - 18122015$']
+--where customer code ='CIQ0001'
+group by [Customer Code],[Item Description],[Doc# Date]
+having [Customer Code] in ('CIQ0001') and year([Doc# Date])=2011 and datename(MONTH,[Doc# Date])='january'
+order by [Doc# Date] 
